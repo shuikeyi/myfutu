@@ -12,7 +12,7 @@ load_dotenv()
 app = FastAPI(title="富途交易服务", version="2.0")
 
 # 全局配置
-API_KEY = "test"
+API_KEY = "suiseiseki_aboard"
 FUTU_HOST = "127.0.0.1"
 FUTU_PORT = 11111
 # 本地调试默认模拟盘，夜盘测试时再改为 TrdEnv.REAL
