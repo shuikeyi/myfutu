@@ -36,11 +36,10 @@ is_unlocked = False
 @app.post("/api/trade/unlock", dependencies=[Depends(check_api_key)])
 async def unlock_trade(password: str):
     global trade_context, is_unlocked
-    
-    if not trade_context or not trade_context.is_connected():
-        raise HTTPException(status_code=500, detail="交易上下文未连接，请重启服务")
+
     
     try:
+        trade_context = OpenSecTradeContext(host=FUTU_HOST, port=FUTU_PORT)
         ret, data = trade_context.unlock_trade(password=password)
         if ret != 0:
             raise HTTPException(status_code=400, detail=f"解锁失败: {data}")
