@@ -18,12 +18,51 @@ FUTU_PORT = 11111
 # 本地调试默认模拟盘，夜盘测试时再改为 TrdEnv.REAL
 TRADING_ENV = TrdEnv.REAL
 
+
+
 # 接口鉴权
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 async def check_api_key(api_key: str = Depends(api_key_header)):
     if api_key != API_KEY:
         raise HTTPException(status_code=401, detail="密钥无效")
     return api_key
+
+# ===================== 全局交易上下文（核心，复用连接） =====================
+trade_context = None
+is_unlocked = False
+
+
+# ===================== 新增：手动解锁交易接口 =====================
+@app.post("/api/trade/unlock", dependencies=[Depends(check_api_key)])
+async def unlock_trade(password: str):
+    global trade_context, is_unlocked
+    
+    if not trade_context or not trade_context.is_connected():
+        raise HTTPException(status_code=500, detail="交易上下文未连接，请重启服务")
+    
+    try:
+        ret, data = trade_context.unlock_trade(password=password)
+        if ret != 0:
+            raise HTTPException(status_code=400, detail=f"解锁失败: {data}")
+        
+        is_unlocked = True
+        return {
+            "success": True,
+            "message": "交易解锁成功",
+            "trading_env": "模拟盘" if TRADING_ENV == TrdEnv.SIMULATE else "实盘"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"解锁异常: {str(e)}")
+
+# ===================== 新增：查询解锁状态接口 =====================
+@app.get("/api/trade/status", dependencies=[Depends(check_api_key)])
+async def get_trade_status():
+    global trade_context, is_unlocked
+    return {
+        "connected": trade_context.is_connected() if trade_context else False,
+        "unlocked": is_unlocked,
+        "trading_env": "模拟盘" if TRADING_ENV == TrdEnv.SIMULATE else "实盘"
+    }
 
 # ===================== 前端传参枚举（纯字符串，FastAPI原生支持） =====================
 # 买卖方向
@@ -156,4 +195,4 @@ async def get_position(
 if __name__ == "__main__":
     import uvicorn
     # 本地调试开启热重载，Linux线上部署改为 reload=False
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
