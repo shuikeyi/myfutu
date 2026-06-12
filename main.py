@@ -6,10 +6,18 @@ from enum import Enum
 from futu import OpenSecTradeContext, TrdEnv, OrderType, TrdSide, TrdMarket, Session
 import os
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 
 # 加载环境变量
 load_dotenv()
 app = FastAPI(title="富途交易服务", version="2.0")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],      # 允许所有来源，个人自用没问题
+    allow_credentials=True,
+    allow_methods=["*"],      # 允许所有请求方法
+    allow_headers=["*"],      # 允许所有请求头
+)
 
 # 全局配置
 API_KEY = "suiseiseki_aboard"
@@ -17,8 +25,6 @@ FUTU_HOST = "127.0.0.1"
 FUTU_PORT = 11111
 # 本地调试默认模拟盘，夜盘测试时再改为 TrdEnv.REAL
 TRADING_ENV = TrdEnv.REAL
-
-
 
 # 接口鉴权
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
